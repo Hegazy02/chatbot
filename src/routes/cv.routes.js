@@ -30,7 +30,7 @@ router.post("/upload-cv", uploadCvPdf.single("file"), async (req, res) => {
 
     return res.json({
       success: true,
-      message: `CV uploaded and split into ${chunks.length} chunks successfully!`,
+      message: `CV uploaded successfully!`,
       filename: cv.filename,
       chunksCount: cv.chunks.length,
       chunks: cv.chunks,
