@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI Assistant Chatbot - Maximalist Edition</title>
+  <title>AI CV Assistant & Resume Grounding - Maximalist Edition</title>
   
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -42,6 +42,9 @@
 </head>
 <body class="text-slate-100 font-sans h-screen w-screen overflow-hidden flex antialiased select-none">
 
+  <!-- Hidden File Input for PDF Upload -->
+  <input type="file" id="cv-file-input" accept=".pdf" class="hidden" />
+
   <!-- Sidebar Overlay for Mobile -->
   <div id="sidebar-overlay" class="fixed inset-0 bg-[#040916]/90 z-30 hidden lg:hidden"></div>
 
@@ -52,13 +55,13 @@
     <div class="p-4 border-b-2 border-blue-600 bg-[#0c1834] flex items-center justify-between">
       <div class="flex items-center space-x-3">
         <div class="w-11 h-11 bg-blue-600 border-2 border-blue-400 flex items-center justify-center shadow-[3px_3px_0px_0px_#1e3a8a]">
-          <i class="fa-solid fa-brain text-white text-xl"></i>
+          <i class="fa-solid fa-file-pdf text-white text-xl"></i>
         </div>
         <div>
           <div class="flex items-center space-x-1.5">
-            <span class="max-badge bg-blue-900 text-blue-300 border-blue-500 text-[9px] py-0.5 px-1.5">v2.0 MAX</span>
+            <span class="max-badge bg-blue-900 text-cyan-300 border-blue-500 text-[9px] py-0.5 px-1.5">RAG 4-CHUNK</span>
           </div>
-          <h1 class="font-display font-black text-white tracking-tight text-lg uppercase">AI CONSOLE</h1>
+          <h1 class="font-display font-black text-white tracking-tight text-lg uppercase">CV ASSISTANT</h1>
         </div>
       </div>
       <button id="close-sidebar-btn" class="lg:hidden text-blue-300 hover:text-white p-2 border-2 border-blue-700 bg-blue-950">
@@ -66,11 +69,36 @@
       </button>
     </div>
 
-    <!-- New Chat Button -->
-    <div class="p-4 bg-[#070e1e] border-b-2 border-blue-800">
-      <button id="new-chat-btn" class="max-btn w-full flex items-center justify-center space-x-2 py-3 px-4 uppercase tracking-wider text-sm">
-        <i class="fa-solid fa-plus text-sm"></i>
+    <!-- Upload & New Session Buttons -->
+    <div class="p-4 bg-[#070e1e] border-b-2 border-blue-800 space-y-2">
+      <button id="upload-cv-sidebar-btn" class="max-btn w-full bg-cyan-600 hover:bg-cyan-500 border-2 border-cyan-300 text-white flex items-center justify-center space-x-2 py-3 px-4 uppercase tracking-wider text-sm shadow-[4px_4px_0px_0px_#155e75]">
+        <i class="fa-solid fa-cloud-arrow-up text-base"></i>
+        <span>UPLOAD CV (PDF)</span>
+      </button>
+      <button id="new-chat-btn" class="max-btn w-full flex items-center justify-center space-x-2 py-2.5 px-4 uppercase tracking-wider text-xs bg-blue-950 hover:bg-blue-900 border-blue-600">
+        <i class="fa-solid fa-plus text-xs"></i>
         <span>NEW SESSION</span>
+      </button>
+    </div>
+
+    <!-- Active CV Status Card in Sidebar -->
+    <div id="sidebar-cv-card" class="p-3 m-3 bg-[#0c1834] border-2 border-blue-500 shadow-[3px_3px_0px_0px_#1e3a8a] hidden">
+      <div class="flex items-center justify-between mb-1">
+        <span class="font-mono text-[10px] font-black text-emerald-400 bg-blue-950 border border-emerald-600 px-1.5 py-0.5">CV LOADED</span>
+        <span class="font-mono text-[10px] text-cyan-300 font-bold">4 CHUNKS</span>
+      </div>
+      <p id="sidebar-cv-name" class="font-mono text-xs text-white font-bold truncate mb-2">Resume.pdf</p>
+      
+      <!-- Chunk Indicator Pills -->
+      <div class="grid grid-cols-4 gap-1 mb-2 text-center font-mono text-[9px] font-black text-blue-200">
+        <div class="bg-blue-900 border border-blue-500 py-0.5">CH 1</div>
+        <div class="bg-blue-900 border border-blue-500 py-0.5">CH 2</div>
+        <div class="bg-blue-900 border border-blue-500 py-0.5">CH 3</div>
+        <div class="bg-blue-900 border border-blue-500 py-0.5">CH 4</div>
+      </div>
+
+      <button id="sidebar-unload-cv-btn" class="w-full text-red-300 hover:text-white bg-red-950 hover:bg-red-900 border border-red-700 font-mono text-[10px] font-bold py-1 px-2 uppercase">
+        <i class="fa-solid fa-xmark mr-1"></i> UNLOAD CV
       </button>
     </div>
 
@@ -93,8 +121,8 @@
       </button>
 
       <div class="p-2 bg-[#091226] border border-blue-700 font-mono text-[10px] text-blue-300 flex items-center justify-between">
-        <span class="font-bold">TARGET HOST:</span>
-        <span class="text-cyan-300 font-black bg-blue-950 border border-blue-600 px-1">localhost:3000</span>
+        <span class="font-bold">CV ENGINE:</span>
+        <span class="text-cyan-300 font-black bg-blue-950 border border-blue-600 px-1">LANGCHAIN 4-CHUNK RAG</span>
       </div>
     </div>
   </aside>
@@ -109,13 +137,16 @@
           <i class="fa-solid fa-bars"></i>
         </button>
         <div class="flex items-center space-x-3">
-          <div class="flex items-center space-x-2 bg-blue-950 border-2 border-blue-600 px-3 py-1 shadow-[2px_2px_0px_0px_#1e3a8a]">
-            <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping"></span>
-            <span class="font-mono font-black text-xs text-cyan-300 uppercase tracking-wider">SYSTEM: ONLINE</span>
+          <button id="upload-cv-header-btn" class="max-btn bg-cyan-600 hover:bg-cyan-500 border-2 border-cyan-300 text-white font-mono text-xs font-black py-1.5 px-3 flex items-center space-x-1.5 shadow-[3px_3px_0px_0px_#155e75]">
+            <i class="fa-solid fa-file-arrow-up"></i>
+            <span>IMPORT CV (PDF)</span>
+          </button>
+          
+          <div id="header-cv-badge" class="hidden flex items-center space-x-2 bg-emerald-950 border-2 border-emerald-500 px-3 py-1 shadow-[2px_2px_0px_0px_#065f46]">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
+            <span id="header-cv-filename" class="font-mono font-black text-xs text-emerald-300 truncate max-w-[150px]">CV Active</span>
+            <span class="font-mono text-[10px] bg-emerald-900 text-emerald-200 px-1 border border-emerald-600 font-bold">4 CHUNKS</span>
           </div>
-          <span class="hidden md:inline-block max-badge bg-blue-900 text-blue-200 border-blue-500">
-            <i class="fa-solid fa-bolt text-yellow-400 mr-1"></i> GROQ BACKEND ACTIVE
-          </span>
         </div>
       </div>
 
@@ -139,54 +170,60 @@
         
         <!-- Big Badge -->
         <div class="inline-flex items-center space-x-2 bg-blue-600 text-white font-mono font-extrabold text-xs px-3 py-1 border-2 border-blue-300 shadow-[4px_4px_0px_0px_#1e3a8a] mb-6 uppercase tracking-widest">
-          <i class="fa-solid fa-terminal"></i>
-          <span>★ MAXIMALIST AI INTERFACE ★</span>
+          <i class="fa-solid fa-id-card"></i>
+          <span>★ AI CV CONSULTANT & LANGCHAIN RAG ★</span>
         </div>
 
         <h2 class="font-display text-3xl md:text-5xl font-black text-white tracking-tight uppercase mb-3 drop-shadow">
-          WHAT ARE WE BUILDING TODAY?
+          UPLOAD CV & ASK QUESTIONS
         </h2>
-        <p class="font-mono text-blue-300 text-xs md:text-sm max-w-lg mb-8 bg-[#0a142c] p-3 border-2 border-blue-700 shadow-[4px_4px_0px_0px_#1e3a8a]">
-          // Full context conversation memory enabled. Ask technical queries, generate code, or draft content.
+        <p class="font-mono text-blue-300 text-xs md:text-sm max-w-lg mb-6 bg-[#0a142c] p-3 border-2 border-blue-700 shadow-[4px_4px_0px_0px_#1e3a8a]">
+          // Import a PDF CV. The agent will split it into 4 LangChain chunks and answer questions strictly based on the resume.
         </p>
 
-        <!-- Prompt Suggestions (Maximalist Offset Cards) -->
+        <!-- Big Dropzone Button on Welcome Screen -->
+        <button id="welcome-upload-btn" class="mb-8 max-btn bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 border-2 border-cyan-300 text-white py-4 px-8 text-base font-black uppercase tracking-wider shadow-[6px_6px_0px_0px_#1e3a8a] flex items-center space-x-3">
+          <i class="fa-solid fa-cloud-arrow-up text-2xl"></i>
+          <span>CLICK HERE TO UPLOAD CV (PDF)</span>
+        </button>
+
+        <!-- Prompt Suggestions (CV Specific) -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full text-left">
           
           <button class="prompt-chip max-card p-4 rounded-none group cursor-pointer">
             <div class="flex items-center justify-between mb-2">
-              <span class="font-mono text-xs font-extrabold text-cyan-400 bg-blue-950 border border-blue-600 px-2 py-0.5">[ PROMPT #01 ]</span>
-              <i class="fa-solid fa-arrow-up-right-from-square text-blue-400 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform"></i>
+              <span class="font-mono text-xs font-extrabold text-cyan-400 bg-blue-950 border border-blue-600 px-2 py-0.5">[ ENHANCE CV ]</span>
+              <i class="fa-solid fa-wand-magic-sparkles text-cyan-400 group-hover:scale-110 transition-transform"></i>
             </div>
-            <h3 class="font-display font-extrabold text-white text-sm mb-1 uppercase">★ Professional CV Summary</h3>
-            <p class="font-mono text-xs text-blue-200/80">Draft an impressive executive summary for a Senior Fullstack Engineer CV.</p>
+            <h3 class="font-display font-extrabold text-white text-sm mb-1 uppercase">★ How can I enhance this CV?</h3>
+            <p class="font-mono text-xs text-blue-200/80">Analyze all 4 CV chunks and suggest concrete improvements and additions.</p>
           </button>
 
           <button class="prompt-chip max-card p-4 rounded-none group cursor-pointer">
             <div class="flex items-center justify-between mb-2">
-              <span class="font-mono text-xs font-extrabold text-amber-400 bg-blue-950 border border-blue-600 px-2 py-0.5">[ PROMPT #02 ]</span>
-              <i class="fa-solid fa-arrow-up-right-from-square text-blue-400 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform"></i>
+              <span class="font-mono text-xs font-extrabold text-amber-400 bg-blue-950 border border-blue-600 px-2 py-0.5">[ SUMMARY ]</span>
+              <i class="fa-solid fa-file-lines text-amber-400 group-hover:scale-110 transition-transform"></i>
             </div>
-            <h3 class="font-display font-extrabold text-white text-sm mb-1 uppercase">★ Code Debugger</h3>
-            <p class="font-mono text-xs text-blue-200/80">Write an async JavaScript fetch pattern with timeout & error handling.</p>
+            <h3 class="font-display font-extrabold text-white text-sm mb-1 uppercase">★ Summarize Candidate Profile</h3>
+            <p class="font-mono text-xs text-blue-200/80">Give me an executive summary of the candidate's work background and experience.</p>
           </button>
 
           <button class="prompt-chip max-card p-4 rounded-none group cursor-pointer">
             <div class="flex items-center justify-between mb-2">
-              <span class="font-mono text-xs font-extrabold text-emerald-400 bg-blue-950 border border-blue-600 px-2 py-0.5">[ PROMPT #03 ]</span>
-              <i class="fa-solid fa-arrow-up-right-from-square text-blue-400 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform"></i>
+              <span class="font-mono text-xs font-extrabold text-emerald-400 bg-blue-950 border border-blue-600 px-2 py-0.5">[ SKILLS ]</span>
+              <i class="fa-solid fa-screwdriver-wrench text-emerald-400 group-hover:scale-110 transition-transform"></i>
             </div>
-            <h3 class="font-display font-extrabold text-white text-sm mb-1 uppercase">★ System Architecture</h3>
-            <p class="font-mono text-xs text-blue-200/80">Compare WebSockets vs HTTP Server-Sent Events with pros & cons.</p>
+            <h3 class="font-display font-extrabold text-white text-sm mb-1 uppercase">★ List Technical Skills & Tools</h3>
+            <p class="font-mono text-xs text-blue-200/80">Extract programming languages, frameworks, tools, and technical competencies.</p>
           </button>
 
           <button class="prompt-chip max-card p-4 rounded-none group cursor-pointer">
             <div class="flex items-center justify-between mb-2">
-              <span class="font-mono text-xs font-extrabold text-purple-400 bg-blue-950 border border-blue-600 px-2 py-0.5">[ PROMPT #04 ]</span>
-              <i class="fa-solid fa-arrow-up-right-from-square text-blue-400 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform"></i>
+              <span class="font-mono text-xs font-extrabold text-purple-400 bg-blue-950 border border-blue-600 px-2 py-0.5">[ EXPERIENCES ]</span>
+              <i class="fa-solid fa-briefcase text-purple-400 group-hover:scale-110 transition-transform"></i>
             </div>
-            <h3 class="font-display font-extrabold text-white text-sm mb-1 uppercase">★ Content Writer</h3>
-            <p class="font-mono text-xs text-blue-200/80">Write a persuasive project proposal introduction for a new client.</p>
+            <h3 class="font-display font-extrabold text-white text-sm mb-1 uppercase">★ Key Accomplishments & Roles</h3>
+            <p class="font-mono text-xs text-blue-200/80">List previous job positions, responsibilities, and key project accomplishments.</p>
           </button>
 
         </div>
@@ -205,7 +242,7 @@
             <span class="w-3 h-3 bg-cyan-400 typing-dot"></span>
             <span class="w-3 h-3 bg-blue-500 typing-dot"></span>
             <span class="w-3 h-3 bg-indigo-400 typing-dot"></span>
-            <span class="font-mono font-bold text-xs text-cyan-300 ml-2 uppercase tracking-wider">// AI COMPUTING RESPONSE...</span>
+            <span class="font-mono font-bold text-xs text-cyan-300 ml-2 uppercase tracking-wider">// ANALYZING CV CHUNKS & COMPUTING ANSWER...</span>
           </div>
         </div>
       </div>
@@ -216,11 +253,24 @@
     <div class="p-4 border-t-2 border-blue-600 bg-[#081126]">
       <div class="max-w-3xl mx-auto relative">
 
+        <!-- Active CV Floating Status Toast above input -->
+        <div id="input-cv-status" class="hidden mb-2 p-2 bg-[#0c1834] border-2 border-emerald-500 font-mono text-xs flex items-center justify-between shadow-[3px_3px_0px_0px_#065f46]">
+          <div class="flex items-center space-x-2 truncate">
+            <i class="fa-solid fa-file-pdf text-emerald-400 text-sm"></i>
+            <span class="font-bold text-white uppercase">CV GROUNDING ACTIVE:</span>
+            <span id="input-cv-filename" class="text-cyan-300 font-bold truncate">Resume.pdf</span>
+            <span class="text-[10px] bg-blue-900 border border-blue-500 px-1 py-0.5 text-blue-200">4 CHUNKS</span>
+          </div>
+          <button id="input-unload-cv-btn" class="text-red-400 hover:text-red-200 font-bold text-xs uppercase underline ml-2 shrink-0">
+            Unload CV
+          </button>
+        </div>
+
         <!-- Error Toast Banner -->
         <div id="error-banner" class="hidden mb-3 p-3 bg-red-950 border-2 border-red-600 text-red-200 font-mono text-xs flex items-center justify-between shadow-[4px_4px_0px_0px_#7f1d1d] animate-slide-up">
           <div class="flex items-center space-x-2">
             <i class="fa-solid fa-triangle-exclamation text-red-400 text-base"></i>
-            <span id="error-message">Failed to connect to http://localhost:3000/api/chat</span>
+            <span id="error-message">Failed to process request</span>
           </div>
           <button id="dismiss-error" class="text-red-400 hover:text-white font-black text-sm">
             <i class="fa-solid fa-xmark"></i>
@@ -232,8 +282,8 @@
           <textarea 
             id="user-input" 
             rows="1" 
-            placeholder="Type your instruction or question..."
-            class="w-full bg-transparent text-white font-sans placeholder-blue-300/40 text-sm font-medium focus:outline-none resize-none max-h-36 pr-12 pl-1 pt-1"
+            placeholder="Ask anything about the CV or how to enhance it..."
+            class="w-full bg-transparent text-white font-sans placeholder-blue-300/40 text-sm font-medium focus:outline-none resize-none max-h-36 pr-24 pl-1 pt-1"
           ></textarea>
 
           <!-- Action Bar Below Input -->
@@ -243,8 +293,18 @@
               <span><kbd class="px-2 py-0.5 bg-blue-950 border border-blue-600 font-black text-cyan-300">SHIFT+ENTER</kbd> LINE</span>
             </div>
 
-            <div class="flex items-center space-x-3">
+            <div class="flex items-center space-x-2">
+              <button 
+                id="input-upload-btn" 
+                title="Upload PDF CV" 
+                class="max-btn py-1.5 px-2.5 bg-cyan-700 hover:bg-cyan-600 border border-cyan-400 text-white font-mono text-xs flex items-center space-x-1"
+              >
+                <i class="fa-solid fa-paperclip"></i>
+                <span class="hidden sm:inline">PDF</span>
+              </button>
+              
               <span id="char-count" class="font-mono text-[11px] text-blue-300/70 font-extrabold">0 / 2000</span>
+              
               <button 
                 id="send-btn" 
                 class="max-btn py-2 px-4 flex items-center justify-center text-sm uppercase tracking-wider"

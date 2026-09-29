@@ -19,17 +19,36 @@ document.addEventListener("DOMContentLoaded", () => {
   const sidebar = document.getElementById("sidebar");
   const sidebarOverlay = document.getElementById("sidebar-overlay");
   const promptChips = document.querySelectorAll(".prompt-chip");
-  const chatHistoryList = document.getElementById("chat-history-list");
 
-  // Endpoint API configuration (Relative URL works both locally and on Vercel)
+  // PDF Upload Elements
+  const cvFileInput = document.getElementById("cv-file-input");
+  const uploadCvSidebarBtn = document.getElementById("upload-cv-sidebar-btn");
+  const uploadCvHeaderBtn = document.getElementById("upload-cv-header-btn");
+  const welcomeUploadBtn = document.getElementById("welcome-upload-btn");
+  const inputUploadBtn = document.getElementById("input-upload-btn");
+  
+  // Active CV Badges
+  const sidebarCvCard = document.getElementById("sidebar-cv-card");
+  const sidebarCvName = document.getElementById("sidebar-cv-name");
+  const sidebarUnloadCvBtn = document.getElementById("sidebar-unload-cv-btn");
+  const headerCvBadge = document.getElementById("header-cv-badge");
+  const headerCvFilename = document.getElementById("header-cv-filename");
+  const inputCvStatus = document.getElementById("input-cv-status");
+  const inputCvFilename = document.getElementById("input-cv-filename");
+  const inputUnloadCvBtn = document.getElementById("input-unload-cv-btn");
+
+  // API Endpoints
   const API_URL = "/api/chat";
-
+  const UPLOAD_URL = "/api/upload-cv";
+  const CLEAR_CV_URL = "/api/clear-cv";
+  const STATUS_CV_URL = "/api/cv-status";
 
   // Application State
   let messages = loadMessagesFromStorage();
   let isGenerating = false;
+  let activeCvState = null;
 
-  // Initialize marked options
+  // Initialize marked options for code rendering
   if (window.marked) {
     marked.setOptions({
       highlight: function (code, lang) {
@@ -43,9 +62,10 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Initial UI Render
+  // Initial UI Setup & Server Status Sync
   renderAllMessages();
   updateHistorySidebar();
+  checkServerCvStatus();
 
   // --- Event Listeners ---
 
@@ -72,14 +92,35 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // Send button click
-  sendBtn.addEventListener("click", () => {
-    handleSendMessage();
+  sendBtn.addEventListener("click", handleSendMessage);
+
+  // PDF Upload Trigger Buttons
+  [uploadCvSidebarBtn, uploadCvHeaderBtn, welcomeUploadBtn, inputUploadBtn].forEach(btn => {
+    if (btn) {
+      btn.addEventListener("click", () => cvFileInput.click());
+    }
+  });
+
+  // File Input Change (Upload PDF)
+  cvFileInput.addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      handlePdfUpload(file);
+    }
+  });
+
+  // Unload CV Buttons
+  [sidebarUnloadCvBtn, inputUnloadCvBtn].forEach(btn => {
+    if (btn) {
+      btn.addEventListener("click", handleUnloadCv);
+    }
   });
 
   // Prompt chip click handlers
   promptChips.forEach(chip => {
     chip.addEventListener("click", () => {
-      const promptText = chip.querySelector("p")?.textContent || "";
+      const promptText = chip.querySelector("h3")?.textContent.replace("★ ", "") || 
+                         chip.querySelector("p")?.textContent || "";
       if (promptText) {
         userInput.value = promptText;
         userInput.dispatchEvent(new Event("input"));
@@ -104,7 +145,111 @@ document.addEventListener("DOMContentLoaded", () => {
   closeSidebarBtn.addEventListener("click", toggleSidebar);
   sidebarOverlay.addEventListener("click", toggleSidebar);
 
-  // --- Core Functions ---
+  // --- PDF Upload & CV RAG Logic ---
+
+  async function handlePdfUpload(file) {
+    if (!file.name.toLowerCase().endsWith(".pdf")) {
+      showError("Invalid file type. Please upload a valid .PDF file.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    hideError();
+    setGeneratingState(true, "// PARSING PDF & SPLITTING INTO 4 LANGCHAIN CHUNKS...");
+
+    try {
+      const response = await fetch(UPLOAD_URL, {
+        method: "POST",
+        body: formData
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || "Failed to parse PDF CV.");
+      }
+
+      // Update active CV state
+      activeCvState = {
+        filename: data.filename,
+        chunksCount: data.chunksCount
+      };
+
+      updateCvStatusBadges();
+
+      // Append System Notification Message into chat
+      const systemNotice = {
+        role: "assistant",
+        text: `📄 **CV LOADED & SPLIT INTO 4 CHUNKS**\n\n- **File Name**: \`${data.filename}\`\n- **Chunk Strategy**: LangChain Recursive Character Splitter (${data.chunksCount} chunks)\n- **Grounding Mode**: Active! I am now strictly grounded in this CV. Ask me about the candidate's skills, experience, or **how to enhance this CV**!`,
+        time: getCurrentTimeStr()
+      };
+      
+      messages.push(systemNotice);
+      saveMessagesToStorage();
+      renderSingleMessage(systemNotice);
+      updateWelcomeState();
+      scrollToBottom();
+
+    } catch (err) {
+      console.error("Upload error:", err);
+      showError(`PDF Upload Error: ${err.message}`);
+    } finally {
+      setGeneratingState(false);
+      cvFileInput.value = ""; // Reset file input
+    }
+  }
+
+  async function handleUnloadCv() {
+    try {
+      await fetch(CLEAR_CV_URL, { method: "POST" });
+    } catch (e) {
+      console.warn("Error clearing CV on server:", e);
+    }
+
+    activeCvState = null;
+    updateCvStatusBadges();
+  }
+
+  async function checkServerCvStatus() {
+    try {
+      const res = await fetch(STATUS_CV_URL);
+      const data = await res.json();
+      if (data.hasCv) {
+        activeCvState = {
+          filename: data.filename,
+          chunksCount: data.chunksCount
+        };
+        updateCvStatusBadges();
+      }
+    } catch (e) {
+      // Ignore initial status fetch errors
+    }
+  }
+
+  function updateCvStatusBadges() {
+    if (activeCvState) {
+      if (sidebarCvCard) {
+        sidebarCvName.textContent = activeCvState.filename;
+        sidebarCvCard.classList.remove("hidden");
+      }
+      if (headerCvBadge) {
+        headerCvFilename.textContent = activeCvState.filename;
+        headerCvBadge.classList.remove("hidden");
+      }
+      if (inputCvStatus) {
+        inputCvFilename.textContent = activeCvState.filename;
+        inputCvStatus.classList.remove("hidden");
+      }
+    } else {
+      if (sidebarCvCard) sidebarCvCard.classList.add("hidden");
+      if (headerCvBadge) headerCvBadge.classList.add("hidden");
+      if (inputCvStatus) inputCvStatus.classList.add("hidden");
+    }
+  }
+
+  // --- Core Messaging Logic ---
 
   async function handleSendMessage() {
     const text = userInput.value.trim();
@@ -137,13 +282,11 @@ document.addEventListener("DOMContentLoaded", () => {
     setGeneratingState(true);
 
     try {
-      // Prepare previous conversation history to send to backend
       const historyPayload = messages.slice(0, -1).map(m => ({
         role: m.role,
         content: m.text
       }));
 
-      // Send HTTP POST request to http://localhost:3000/api/chat including history
       const response = await fetch(API_URL, {
         method: "POST",
         headers: {
@@ -155,15 +298,12 @@ document.addEventListener("DOMContentLoaded", () => {
         })
       });
 
-
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.message || `Server error ${response.status}`);
       }
 
       const data = await response.json();
-      
-      // Extract response from expected backend payload structure: { "response": "..." }
       const aiReply = data.response || "No response content received.";
       
       const assistantMsg = { role: "assistant", text: aiReply, time: getCurrentTimeStr() };
@@ -175,7 +315,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     } catch (err) {
       console.error("Chat Error:", err);
-      showError(`API Request Failed: ${err.message || "Is your server running on http://localhost:3000?"}`);
+      showError(`API Request Failed: ${err.message || "Is your server running?"}`);
     } finally {
       setGeneratingState(false);
       scrollToBottom();
@@ -213,7 +353,6 @@ document.addEventListener("DOMContentLoaded", () => {
         </div>
       `;
     } else {
-      // Process AI Assistant markdown content
       const formattedHtml = formatMarkdown(msg.text);
 
       msgWrapper.innerHTML = `
@@ -238,16 +377,13 @@ document.addEventListener("DOMContentLoaded", () => {
       `;
     }
 
-
-
-
     chatMessages.appendChild(msgWrapper);
 
-    // Attach code copy handlers for assistant code blocks
+    // Code block copy listeners
     if (!isUser) {
       const copyBtns = msgWrapper.querySelectorAll(".copy-btn");
       copyBtns.forEach(btn => {
-        btn.addEventListener("click", (e) => {
+        btn.addEventListener("click", () => {
           const preElement = btn.closest(".code-block-container")?.querySelector("code");
           if (preElement) {
             copyToClipboard(preElement.textContent, btn);
@@ -270,7 +406,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     let parsedHtml = marked.parse(text);
 
-    // Wrap code blocks with header bar and copy button
     const parser = new DOMParser();
     const doc = parser.parseFromString(parsedHtml, "text/html");
 
@@ -293,7 +428,6 @@ document.addEventListener("DOMContentLoaded", () => {
         </button>
       `;
 
-
       wrapper.appendChild(header);
       pre.parentNode.insertBefore(wrapper, pre);
       wrapper.appendChild(pre);
@@ -302,16 +436,23 @@ document.addEventListener("DOMContentLoaded", () => {
     return doc.body.innerHTML;
   }
 
-  function setGeneratingState(generating) {
+  function setGeneratingState(generating, customText) {
     isGenerating = generating;
     sendBtn.disabled = generating;
+
+    const labelEl = typingIndicator.querySelector("span:last-child");
+    if (labelEl && customText) {
+      labelEl.textContent = customText;
+    } else if (labelEl) {
+      labelEl.textContent = "// ANALYZING CV CHUNKS & COMPUTING ANSWER...";
+    }
 
     if (generating) {
       typingIndicator.classList.remove("hidden");
       sendBtn.innerHTML = `<i class="fa-solid fa-spinner animate-spin text-xs"></i>`;
     } else {
       typingIndicator.classList.add("hidden");
-      sendBtn.innerHTML = `<i class="fa-solid fa-paper-plane text-xs"></i>`;
+      sendBtn.innerHTML = `<span>SEND</span><i class="fa-solid fa-paper-plane text-xs ml-1.5"></i>`;
     }
   }
 
@@ -339,7 +480,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (emptyState) emptyState.classList.add("hidden");
 
-    // Group user messages as chat snippets
     const userMessages = messages.filter(m => m.role === "user");
     userMessages.slice(-5).reverse().forEach(m => {
       const item = document.createElement("div");
@@ -350,7 +490,6 @@ document.addEventListener("DOMContentLoaded", () => {
       `;
       historyList.appendChild(item);
     });
-
   }
 
   function clearChatHistory() {
@@ -360,11 +499,8 @@ document.addEventListener("DOMContentLoaded", () => {
     updateHistorySidebar();
     hideError();
 
-    // Reset server-side history state
     fetch("/api/chat/clear", { method: "POST" }).catch(() => {});
-
   }
-
 
   function exportChat() {
     if (messages.length === 0) {
@@ -372,7 +508,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    let exportText = `# AI Chatbot Session Export\nDate: ${new Date().toLocaleString()}\n\n---\n\n`;
+    let exportText = `# AI CV Session Export\nDate: ${new Date().toLocaleString()}\nActive CV: ${activeCvState?.filename || 'None'}\n\n---\n\n`;
     messages.forEach(m => {
       const sender = m.role === "user" ? "User" : "AI Assistant";
       exportText += `### **${sender}** (${m.time})\n${m.text}\n\n`;
@@ -382,7 +518,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `chat-export-${Date.now()}.md`;
+    a.download = `cv-chat-export-${Date.now()}.md`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -392,7 +528,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function copyToClipboard(text, buttonEl) {
     navigator.clipboard.writeText(text).then(() => {
       const originalHTML = buttonEl.innerHTML;
-      buttonEl.innerHTML = `<i class="fa-solid fa-check text-emerald-400"></i> <span class="text-emerald-400">Copied!</span>`;
+      buttonEl.innerHTML = `<i class="fa-solid fa-check text-emerald-400"></i> <span class="text-emerald-400">COPIED!</span>`;
       setTimeout(() => {
         buttonEl.innerHTML = originalHTML;
       }, 2000);
