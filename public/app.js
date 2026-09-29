@@ -21,8 +21,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const promptChips = document.querySelectorAll(".prompt-chip");
   const chatHistoryList = document.getElementById("chat-history-list");
 
-  // Endpoint API configuration
-  const API_URL = "http://localhost:3000/api/chat";
+  // Endpoint API configuration (Relative URL works both locally and on Vercel)
+  const API_URL = "/api/chat";
+
 
   // Application State
   let messages = loadMessagesFromStorage();
@@ -360,7 +361,8 @@ document.addEventListener("DOMContentLoaded", () => {
     hideError();
 
     // Reset server-side history state
-    fetch("http://localhost:3000/api/chat/clear", { method: "POST" }).catch(() => {});
+    fetch("/api/chat/clear", { method: "POST" }).catch(() => {});
+
   }
 
 
