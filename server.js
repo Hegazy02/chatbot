@@ -1,6 +1,8 @@
-import "dotenv/config";
-import express from "express";
-import OpenAI from "openai";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -24,7 +26,13 @@ app.use((req, res, next) => {
 });
 
 // Serve static files from 'public' folder
-app.use(express.static("public"));
+app.use(express.static(path.join(__dirname, "public")));
+
+// Explicit GET route for root /
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
+
 
 
 // Server-side fallback memory array
