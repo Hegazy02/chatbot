@@ -1,0 +1,205 @@
+/* Maximalist Styling & Utilities */
+
+/* Background Grid Overlay Pattern */
+body {
+  background-color: #040916;
+  background-image: 
+    radial-gradient(circle at 25px 25px, rgba(59, 130, 246, 0.08) 2px, transparent 0),
+    linear-gradient(to right, rgba(30, 58, 138, 0.15) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(30, 58, 138, 0.15) 1px, transparent 1px);
+  background-size: 50px 50px, 30px 30px, 30px 30px;
+}
+
+/* Custom Scrollbar - Bold Maximalist */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: #060c1d;
+  border-left: 2px solid #1e3a8a;
+}
+::-webkit-scrollbar-thumb {
+  background: #2563eb;
+  border: 2px solid #060c1d;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3b82f6;
+}
+
+/* Maximalist Hard Offset Shadow Panels */
+.max-card {
+  background-color: #0b152c;
+  border: 2px solid #1d4ed8;
+  box-shadow: 5px 5px 0px 0px #1e3a8a;
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.max-card:hover {
+  border-color: #3b82f6;
+  box-shadow: 7px 7px 0px 0px #2563eb;
+  transform: translate(-2px, -2px);
+}
+
+.max-input {
+  background-color: #070e1e;
+  border: 2px solid #2563eb;
+  box-shadow: 4px 4px 0px 0px #1e3a8a;
+  transition: all 0.15s ease-in-out;
+}
+
+.max-input:focus-within {
+  border-color: #60a5fa;
+  box-shadow: 6px 6px 0px 0px #2563eb;
+}
+
+.max-btn {
+  background-color: #2563eb;
+  color: #ffffff;
+  border: 2px solid #60a5fa;
+  box-shadow: 4px 4px 0px 0px #1e3a8a;
+  font-weight: 700;
+  transition: all 0.12s ease-in-out;
+}
+
+.max-btn:hover {
+  background-color: #3b82f6;
+  box-shadow: 6px 6px 0px 0px #1d4ed8;
+  transform: translate(-2px, -2px);
+}
+
+.max-btn:active {
+  box-shadow: 1px 1px 0px 0px #1d4ed8;
+  transform: translate(3px, 3px);
+}
+
+.max-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border: 1px solid currentColor;
+}
+
+/* Pulsing typing animation */
+@keyframes maxPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.3);
+    opacity: 0.6;
+  }
+}
+
+.typing-dot {
+  animation: maxPulse 0.8s infinite ease-in-out both;
+}
+
+.typing-dot:nth-child(1) { animation-delay: 0s; }
+.typing-dot:nth-child(2) { animation-delay: 0.15s; }
+.typing-dot:nth-child(3) { animation-delay: 0.3s; }
+
+/* Markdown Styling in Maximalist Theme */
+.markdown-body {
+  color: #f1f5f9;
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.markdown-body p {
+  margin-bottom: 0.75rem;
+}
+
+.markdown-body h1, .markdown-body h2, .markdown-body h3 {
+  font-weight: 800;
+  color: #ffffff;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+  border-bottom: 2px solid #1e3a8a;
+  padding-bottom: 0.25rem;
+}
+
+.markdown-body ul, .markdown-body ol {
+  padding-left: 1.25rem;
+  margin-bottom: 0.75rem;
+}
+.markdown-body ul { list-style-type: square; }
+.markdown-body ol { list-style-type: decimal; }
+
+.markdown-body code:not(pre code) {
+  background: #1e3a8a;
+  color: #93c5fd;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.875em;
+  font-weight: 700;
+  border: 1px solid #3b82f6;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.markdown-body pre {
+  margin: 0.75rem 0;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 2px solid #2563eb;
+  box-shadow: 4px 4px 0px 0px #1e3a8a;
+  background: #040814 !important;
+}
+
+.code-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #0e1b38;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.75rem;
+  color: #60a5fa;
+  border-bottom: 2px solid #1e3a8a;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-weight: 800;
+}
+
+.copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 4px;
+  background: #1e3a8a;
+  color: #ffffff;
+  border: 1px solid #3b82f6;
+  font-size: 0.75rem;
+  font-weight: 700;
+  transition: all 0.15s;
+  cursor: pointer;
+}
+
+.copy-btn:hover {
+  background: #2563eb;
+  box-shadow: 2px 2px 0px 0px #1e3a8a;
+}
+
+/* Animations */
+@keyframes slideUpFade {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-up {
+  animation: slideUpFade 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
